@@ -1,0 +1,12 @@
+flask
+scikit-learn
+numpy
+langchain
+langchain-community
+langchain-google-genai
+langchain-huggingface
+lancedb
+python-dotenv
+pandas
+pypdf
+sentence-transformers

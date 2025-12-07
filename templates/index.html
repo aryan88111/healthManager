@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Health Manager | AI-Powered Health Clarity</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <main class="container">
+        <header>
+            <div class="logo">HealthManager<span class="dot">.</span>AI</div>
+            <p class="tagline">Connect the dots between conflicting doctors, lost reports, and generic internet gyaan.
+            </p>
+        </header>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('analyze')">Analyze Symptoms</button>
+            <button class="tab-btn" onclick="switchTab('chat')">Chat with AI</button>
+        </div>
+
+        <!-- Analyze Section -->
+        <div id="analyze-tab" class="tab-content active">
+            <section class="card glass-panel">
+                <div class="input-group">
+                    <label for="symptoms">What's confusing you today?</label>
+                    <textarea id="symptoms"
+                        placeholder="e.g., 'Doctor A says surgery but Doctor B says meds' or 'I have a headache and blurry vision'"></textarea>
+                </div>
+                <button id="analyzeBtn" class="btn-primary">
+                    <span class="btn-text">Analyze with AI</span>
+                    <div class="loader" id="loader"></div>
+                </button>
+            </section>
+
+            <section id="resultSection" class="result-card glass-panel hidden">
+                <div class="result-header">
+                    <h3>AI Recommendation</h3>
+                    <span class="confidence-badge" id="confidenceBadge">98% Match</span>
+                </div>
+                <div class="result-content">
+                    <h2 id="recommendationTitle">Neurologist</h2>
+                    <p id="analysisText">Based on your input, our AI suggests this specialist.</p>
+                </div>
+                <div class="actions">
+                    <button class="btn-secondary">Find Doctors</button>
+                    <button class="btn-outline">Save Report</button>
+                </div>
+            </section>
+        </div>
+
+        <!-- Chat Section -->
+        <div id="chat-tab" class="tab-content hidden">
+            <section class="card glass-panel chat-panel">
+                <div class="chat-header-actions">
+                    <div class="upload-container">
+                        <label for="pdfUpload" class="btn-outline btn-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="17 8 12 3 7 8"></polyline>
+                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                            Upload Report (PDF)
+                        </label>
+                        <input type="file" id="pdfUpload" accept=".pdf" style="display: none;">
+                        <span id="uploadStatus" class="upload-status"></span>
+                    </div>
+                </div>
+                <div class="chat-history" id="chatHistory">
+                    <div class="message bot-message">
+                        Hello! I'm your Health Manager AI. I can help you understand conflicting medical advice or
+                        general health guidelines. You can also upload a PDF report for me to analyze!
+                    </div>
+                </div>
+                <div class="chat-input-group">
+                    <input type="text" id="chatInput"
+                        placeholder="Ask a question about your health or uploaded report..." />
+                    <button id="sendBtn" class="btn-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="22" y1="2" x2="11" y2="13"></line>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                        </svg>
+                    </button>
+                </div>
+            </section>
+        </div>
+
+    </main>
+
+    <script>
+        // Tab Switching
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+
+            document.getElementById(tabName + '-tab').classList.remove('hidden');
+            document.getElementById(tabName + '-tab').classList.add('active');
+
+            const btns = document.querySelectorAll('.tab-btn');
+            if (tabName === 'analyze') btns[0].classList.add('active');
+            else btns[1].classList.add('active');
+        }
+
+        // Analyze Logic
+        document.getElementById('analyzeBtn').addEventListener('click', async () => {
+            const text = document.getElementById('symptoms').value;
+            const btn = document.getElementById('analyzeBtn');
+            const btnText = btn.querySelector('.btn-text');
+            const loader = document.getElementById('loader');
+            const resultSection = document.getElementById('resultSection');
+
+            if (!text.trim()) return;
+
+            btn.disabled = true;
+            btnText.style.opacity = '0';
+            loader.style.display = 'block';
+            resultSection.classList.add('hidden');
+
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    document.getElementById('recommendationTitle').innerText = data.recommendation;
+                    document.getElementById('analysisText').innerText = data.analysis;
+                    document.getElementById('confidenceBadge').innerText = data.confidence + ' Confidence';
+
+                    resultSection.classList.remove('hidden');
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (e) {
+                console.error(e);
+                alert('Something went wrong.');
+            } finally {
+                btn.disabled = false;
+                btnText.style.opacity = '1';
+                loader.style.display = 'none';
+            }
+        });
+
+        // Chat Logic
+        const chatInput = document.getElementById('chatInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const chatHistory = document.getElementById('chatHistory');
+
+        async function sendMessage() {
+            const message = chatInput.value.trim();
+            if (!message) return;
+
+            appendMessage(message, 'user-message');
+            chatInput.value = '';
+
+            const loadingId = 'loading-' + Date.now();
+            appendMessage('Thinking...', 'bot-message', loadingId);
+
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message })
+                });
+
+                const data = await response.json();
+
+                const loadingEl = document.getElementById(loadingId);
+                if (loadingEl) loadingEl.remove();
+
+                if (response.ok) {
+                    appendMessage(data.response, 'bot-message');
+                } else {
+                    appendMessage('Error: ' + (data.error || 'Could not connect to AI'), 'bot-message error');
+                }
+            } catch (e) {
+                const loadingEl = document.getElementById(loadingId);
+                if (loadingEl) loadingEl.remove();
+                appendMessage('Error: Network issue', 'bot-message error');
+            }
+        }
+
+        function appendMessage(text, className, id = null) {
+            const div = document.createElement('div');
+            div.className = `message ${className}`;
+            div.innerText = text;
+            if (id) div.id = id;
+            chatHistory.appendChild(div);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+
+        sendBtn.addEventListener('click', sendMessage);
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        // PDF Upload Logic
+        document.getElementById('pdfUpload').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const status = document.getElementById('uploadStatus');
+            status.innerText = 'Uploading...';
+            status.style.color = '#94a3b8';
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    status.innerText = 'Uploaded!';
+                    status.style.color = '#34d399';
+                    appendMessage(`I've uploaded "${file.name}". You can now ask me questions about it!`, 'bot-message');
+                } else {
+                    status.innerText = 'Failed';
+                    status.style.color = '#ef4444';
+                    alert('Upload failed: ' + data.error);
+                }
+            } catch (e) {
+                status.innerText = 'Error';
+                status.style.color = '#ef4444';
+                console.error(e);
+            }
+        });
+    </script>
+</body>
+
+</html>
